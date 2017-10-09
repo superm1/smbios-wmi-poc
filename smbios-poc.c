@@ -43,31 +43,31 @@ int run_wmi_smbios_cmd(struct wmi_smbios_buffer *buffer)
 
 int find_token(guint16 token, guint16 *location, guint16 *value)
 {
+	gchar *location_sysfs = NULL;
+	gchar *value_sysfs = NULL;
 	gchar *out = NULL;
-	gchar **top_split;
-	gchar **inner_split;
-	gchar **ptr;
-	guint16 cmptoken;
 	gsize len = 0;
-	if (!g_file_get_contents(TOKENS_SYSFS, &out, &len, NULL)) {
-		g_error("failed to read tokens");
+
+	location_sysfs = g_strdup_printf("%s/%04x_location", TOKENS_SYSFS, token);
+	if (!g_file_get_contents(location_sysfs, &out, &len, NULL)) {
+		g_error("failed to read %s", location_sysfs);
+		g_free(location_sysfs);
 		return 1;
 	}
-	top_split = g_strsplit(out, "\n", 0);
-	for (ptr = top_split; *ptr; ptr++) {
-		inner_split =  g_strsplit(*ptr, "\t", 3);
-		if (!*inner_split)
-			continue;
-		cmptoken = (guint16) g_ascii_strtoll(inner_split[0], NULL, 16);
-		if (token != cmptoken)
-			continue;
-		*location = (guint16) g_ascii_strtoll(inner_split[1], NULL, 16);
-		*value = (guint16) g_ascii_strtoll(inner_split[2], NULL, 16);
-		g_strfreev(inner_split);
-		break;
-	}
-	g_strfreev(top_split);
+	*location = (guint16) g_ascii_strtoll(out, NULL, 16);
 	g_free(out);
+	g_free(location_sysfs);
+
+	value_sysfs = g_strdup_printf("%s/%04x_value", TOKENS_SYSFS, token);
+	if (!g_file_get_contents(value_sysfs, &out, &len, NULL)) {
+		g_error("failed to read %s", value_sysfs);
+		g_free(value_sysfs);
+		return 1;
+	}
+	*value = (guint16) g_ascii_strtoll(out, NULL, 16);
+	g_free(out);
+	g_free(value_sysfs);
+
 	if (*location)
 		return 0;
 	return 2;
