@@ -17,7 +17,7 @@
 
 static const char *devfs = "/dev/wmi/dell-smbios";
 #define TOKENS_SYSFS "/sys/bus/platform/devices/dell-smbios.0/tokens"
-#define BUFFER_SYSFS "/sys/bus/wmi/drivers/dell-smbios/A80593CE-A997-11DA-B012-B622A1EF5492/buffer_size"
+#define BUFFER_SYSFS "/sys/bus/wmi/drivers/dell-smbios/A80593CE-A997-11DA-B012-B622A1EF5492/required_buffer_size"
 
 void debug_buffer(struct wmi_smbios_buffer *buffer)
 {
