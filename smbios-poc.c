@@ -5,8 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include <linux/types.h>
-#include <linux/dell-smbios.h>
+#include <linux/wmi.h>
 
 #define DELL_CAPSULE_FIRMWARE_UPDATES_ENABLED 0x0461
 #define DELL_CAPSULE_FIRMWARE_UPDATES_DISABLED 0x0462
@@ -17,9 +16,9 @@
 
 static const char *devfs = "/dev/wmi/dell-smbios";
 #define TOKENS_SYSFS "/sys/bus/platform/devices/dell-smbios.0/tokens"
-#define BUFFER_SYSFS "/sys/bus/wmi/drivers/dell-smbios/A80593CE-A997-11DA-B012-B622A1EF5492/required_buffer_size"
+#define BUFFER_SYSFS "/sys/bus/wmi/devices/A80593CE-A997-11DA-B012-B622A1EF5492/required_buffer_size"
 
-void debug_buffer(struct wmi_smbios_buffer *buffer)
+void debug_buffer(struct dell_wmi_smbios_buffer *buffer)
 {
 	g_print("%x/%x [%x,%x,%x,%x] [%8x,%8x,%8x,%8x] \n",
 	buffer->std.class, buffer->std.select,
@@ -29,7 +28,7 @@ void debug_buffer(struct wmi_smbios_buffer *buffer)
 	buffer->std.output[2], buffer->std.output[3]);
 }
 
-int run_wmi_smbios_cmd(struct wmi_smbios_buffer *buffer)
+int run_wmi_smbios_cmd(struct dell_wmi_smbios_buffer *buffer)
 {
 	gint fd;
 	gint ret;
@@ -74,7 +73,7 @@ int find_token(guint16 token, guint16 *location, guint16 *value)
 }
 
 int
-token_is_active(guint16 *location, guint16 *cmpvalue, struct wmi_smbios_buffer *buffer)
+token_is_active(guint16 *location, guint16 *cmpvalue, struct dell_wmi_smbios_buffer *buffer)
 {
 	int ret;
 	buffer->std.class = DELL_CLASS_READ_TOKEN;
@@ -87,7 +86,7 @@ token_is_active(guint16 *location, guint16 *cmpvalue, struct wmi_smbios_buffer *
 	return ret;
 }
 
-int query_token(guint16 token, struct wmi_smbios_buffer *buffer)
+int query_token(guint16 token, struct dell_wmi_smbios_buffer *buffer)
 {
 	guint16 location;
 	guint16 value;
@@ -100,7 +99,7 @@ int query_token(guint16 token, struct wmi_smbios_buffer *buffer)
 	return token_is_active(&location, &value, buffer);
 }
 
-int activate_token(struct wmi_smbios_buffer *buffer,
+int activate_token(struct dell_wmi_smbios_buffer *buffer,
 		   guint16 token)
 {
 	guint16 location;
@@ -133,7 +132,7 @@ int query_buffer_size(gint *value)
 
 int main()
 {
-	struct wmi_smbios_buffer *buffer;
+	struct dell_wmi_smbios_buffer *buffer;
 	gint ret = 0;
 	gint value;
 	gint size;
@@ -144,9 +143,14 @@ int main()
 		ret = -1;
 		goto out;
 	}
+	if (!value) {
+		ret = -1;
+		g_error("Invalid buffer size found");
+		goto out;
+	}
 	g_print("Working with buffer size: %d\n", value);
 
-	buffer = g_new (struct wmi_smbios_buffer, value);
+	buffer = g_new (struct dell_wmi_smbios_buffer, value);
 	if (buffer == NULL) {
 		g_error("failed to alloc memory for ioctl");
 		ret = -1;
